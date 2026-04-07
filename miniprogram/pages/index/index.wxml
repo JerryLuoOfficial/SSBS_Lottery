@@ -1,0 +1,52 @@
+<view class="container">
+  <view class="refresh-btn" bindtap="refreshPage">
+    <text>🔄 刷新状态</text>
+  </view>
+  <view class="card" wx:if="{{timeStatus === 0}}">
+    <view style="text-align: center; color: #999; padding: 100rpx 0;">系统加载中...</view>
+  </view>
+
+  <view class="card" wx:elif="{{timeStatus === 1 || timeStatus === 3}}">
+    <view class="title">星河湾电视台任务分配系统</view>
+    <view class="time-board">
+      <view class="time-label">报名开放时段</view>
+      <view class="time-value">{{config.startTime}} ~ {{config.endTime}}</view>
+    </view>
+    <view class="status-badge {{timeStatus === 1 ? 'warning' : 'danger'}}">
+      {{timeStatus === 1 ? '报名尚未开始' : '报名已结束'}}
+    </view>
+    <button class="btn disabled">暂不可报名</button>
+  </view>
+
+  <view class="card" wx:elif="{{timeStatus === 2 && !isBound}}">
+    <view class="title">第一步：选择姓名</view>
+    <view class="desc">请在下方列表中选择您的代号并绑定</view>
+
+    <picker range="{{codeNames}}" bindchange="onSelectName">
+      <view class="picker-box">
+        <text class="picker-label">当前选择：</text>
+        <text class="picker-value {{selectedName ? 'active' : ''}}">{{selectedName || '请点击此处选择'}}</text>
+      </view>
+    </picker>
+    
+    <button type="primary" class="btn" bindtap="bindIdentity" disabled="{{!selectedName}}">确认绑定身份</button>
+  </view>
+
+  <view class="card" wx:elif="{{timeStatus === 2 && isBound}}">
+    <view class="title">确认报名</view>
+    <view class="desc">欢迎，<text class="highlight">{{selectedName}}</text></view>
+
+    <view class="time-board" style="margin: 60rpx 0;">
+      <view class="time-label">本次抽奖开放时段</view>
+      <view class="time-value" style="color: #07c160;">{{config.startTime}}</view>
+      <view class="time-value" style="font-size: 24rpx; color: #999; margin: 10rpx 0;">至</view>
+      <view class="time-value" style="color: #ff9800;">{{config.endTime}}</view>
+    </view>
+
+    <button type="primary" class="btn pulse" bindtap="submitFinalRegistration">确认进入抽奖池</button>
+  </view>
+</view>
+
+<view class="admin-entry" wx:if="{{isAdmin}}" bindtap="goToAdmin">
+  <text>⚙️ 进入管理后台</text>
+</view>

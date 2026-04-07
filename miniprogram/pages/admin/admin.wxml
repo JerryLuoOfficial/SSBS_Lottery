@@ -1,0 +1,71 @@
+<view class="container">
+  <view class="header">后台管理中心</view>
+
+  <view class="card">
+    <view class="card-title">报名时间设置</view>
+    
+    <view class="form-item">
+      <text class="label">开始时间</text>
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+        <view class="picker-box">{{startDate || '选择日期'}}</view>
+      </picker>
+      <picker mode="time" value="{{startTime}}" bindchange="onStartTimeChange">
+        <view class="picker-box">{{startTime || '选择时间'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="label">截止时间</text>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+        <view class="picker-box">{{endDate || '选择日期'}}</view>
+      </picker>
+      <picker mode="time" value="{{endTime}}" bindchange="onEndTimeChange">
+        <view class="picker-box">{{endTime || '选择时间'}}</view>
+      </picker>
+    </view>
+    
+    <button class="btn-save" bindtap="saveTimeConfig">保存时间配置</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">抽奖！
+      <view class="draw-setting" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30rpx; padding: 20rpx; background: #f8f9fa; border-radius: 12rpx;">
+      <text style="font-size: 30rpx; font-weight: bold;">本轮抽取人数：</text>
+      <input type="number" value="{{drawCount}}" bindinput="inputDrawCount" 
+             style="width: 120rpx; text-align: center; border: 2rpx solid #ddd; border-radius: 8rpx; height: 60rpx; font-size: 32rpx; background: #fff;" />
+      </view>
+    </view>
+    <button type="warn" bindtap="executeDraw" style="border-radius: 40rpx;">🎲 立即开奖</button>
+  </view>
+
+  <view class="card">
+    <view class="card-title">用户报名情况</view>
+    
+    <view class="table-header">
+      <text class="th name" style="flex: 1.2;">代号</text>
+      <text class="th status">绑定</text>
+      <text class="th reg">报名</text>  <text class="th weight">权重</text>
+      <text class="th action">操作</text>
+    </view>
+
+    <block wx:for="{{users}}" wx:key="_id">
+      <view class="table-row">
+        <text class="td name" style="flex: 1.2;">{{item.codeName}}</text>
+        
+        <text class="td status {{item.openid ? 'bound' : 'empty'}}">
+          {{item.openid ? '已绑' : '未绑'}}
+        </text>
+
+        <text class="td reg {{item.hasRegistered ? 'reg-yes' : 'reg-no'}}">
+          {{item.hasRegistered ? '✅' : '❌'}}
+        </text>
+        
+        <input class="td weight-input" type="number" 
+               value="{{item.weight !== undefined ? item.weight : 100}}" 
+               data-index="{{index}}" 
+               bindinput="inputWeight" />
+        <button class="td btn-update" data-id="{{item._id}}" data-index="{{index}}" bindtap="updateWeight">更新</button>
+      </view>
+    </block>
+  </view>
+</view>

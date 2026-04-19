@@ -1,19 +1,21 @@
 page {
-  background: #f4f7f9;
+  background: linear-gradient(180deg, #f4f7f9 0%, #eef5ff 100%);
   font-family: -apple-system, sans-serif;
 }
 
 .container {
   padding: 40rpx;
+  position: relative;
+  padding-top: 80rpx;
 }
 
 .card {
   background: #fff;
-  padding: 80rpx 50rpx;
+  padding: 72rpx 50rpx;
   border-radius: 24rpx;
   text-align: center;
   margin-top: 100rpx;
-  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04);
+  box-shadow: 0 12rpx 30rpx rgba(0, 0, 0, 0.06);
 }
 
 .title {
@@ -26,7 +28,7 @@ page {
 .sub-text {
   color: #888;
   font-size: 28rpx;
-  margin-bottom: 60rpx;
+  margin: 30rpx 0 10rpx;
 }
 
 .picker-box {
@@ -48,6 +50,7 @@ page {
   font-size: 30rpx;
   font-weight: bold;
 }
+
 .picker-value.active {
   color: #07c160;
 }
@@ -57,6 +60,11 @@ page {
   height: 90rpx;
   line-height: 90rpx;
   font-size: 32rpx;
+}
+
+.btn-secondary {
+  background: #eef2f6;
+  color: #3d4b5f;
 }
 
 .desc {
@@ -71,24 +79,34 @@ page {
   font-size: 36rpx;
 }
 
-/* 添加到 index.wxss 最底部 */
+.pool-tag {
+  margin: 24rpx auto;
+  display: inline-block;
+  padding: 12rpx 24rpx;
+  border-radius: 28rpx;
+  font-size: 28rpx;
+  color: #0b8a5a;
+  background: #e8f8ee;
+  border: 2rpx solid #bfe8cf;
+}
+
 .admin-entry {
   position: fixed;
   bottom: 60rpx;
   right: 40rpx;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   color: white;
   padding: 16rpx 30rpx;
   border-radius: 40rpx;
   font-size: 26rpx;
-  box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.2);
+  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.2);
   z-index: 999;
 }
+
 .admin-entry:active {
   background: rgba(0, 0, 0, 0.9);
 }
 
-/* 时间面板样式 */
 .time-board {
   background: #f8f9fa;
   padding: 30rpx;
@@ -96,10 +114,19 @@ page {
   margin: 40rpx 0;
   border: 2rpx dashed #dcdfe6;
 }
-.time-label { font-size: 26rpx; color: #888; margin-bottom: 10rpx; }
-.time-value { font-size: 30rpx; color: #333; font-weight: bold; }
 
-/* 状态徽章 */
+.time-label {
+  font-size: 26rpx;
+  color: #888;
+  margin-bottom: 10rpx;
+}
+
+.time-value {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: bold;
+}
+
 .status-badge {
   display: inline-block;
   padding: 8rpx 24rpx;
@@ -108,36 +135,35 @@ page {
   font-weight: bold;
   margin-bottom: 30rpx;
 }
-.status-badge.warning { background: #fff3e0; color: #ff9800; }
-.status-badge.danger { background: #ffebee; color: #f44336; }
-.status-badge.success { background: #e8f5e9; color: #4caf50; }
 
-/* 禁用按钮的样式 */
+.status-badge.warning {
+  background: #fff3e0;
+  color: #ff9800;
+}
+
+.status-badge.danger {
+  background: #ffebee;
+  color: #f44336;
+}
+
 .btn.disabled {
   background: #e0e0e0;
   color: #9e9e9e;
   box-shadow: none;
 }
 
-/* 确保容器能作为绝对定位的参照物 */
-.container { 
-  padding: 40rpx; 
-  position: relative; 
-  padding-top: 80rpx; /* 给顶部的刷新按钮留出一点空间 */
-}
-
-/* 刷新按钮样式 */
 .refresh-btn {
   position: absolute;
   top: 30rpx;
   right: 40rpx;
   font-size: 26rpx;
-  color: #576b95; /* 微信经典的链接蓝色 */
+  color: #576b95;
   display: flex;
   align-items: center;
   padding: 10rpx;
   z-index: 10;
 }
+
 .refresh-btn:active {
-  opacity: 0.6; /* 点击时稍微变暗一点点，增加反馈感 */
+  opacity: 0.6;
 }

@@ -2,6 +2,7 @@
   <view class="refresh-btn" bindtap="refreshPage">
     <text>🔄 刷新状态</text>
   </view>
+
   <view class="card" wx:if="{{timeStatus === 0}}">
     <view style="text-align: center; color: #999; padding: 100rpx 0;">系统加载中...</view>
   </view>
@@ -28,22 +29,37 @@
         <text class="picker-value {{selectedName ? 'active' : ''}}">{{selectedName || '请点击此处选择'}}</text>
       </view>
     </picker>
-    
+
     <button type="primary" class="btn" bindtap="bindIdentity" disabled="{{!selectedName}}">确认绑定身份</button>
   </view>
 
-  <view class="card" wx:elif="{{timeStatus === 2 && isBound}}">
-    <view class="title">确认报名</view>
+  <view class="card" wx:elif="{{timeStatus === 2 && isBound && !currentRegistrationPool}}">
+    <view class="title">第二步：选择抽奖池</view>
     <view class="desc">欢迎，<text class="highlight">{{selectedName}}</text></view>
 
-    <view class="time-board" style="margin: 60rpx 0;">
+    <view class="time-board" style="margin: 40rpx 0;">
       <view class="time-label">本次抽奖开放时段</view>
       <view class="time-value" style="color: #07c160;">{{config.startTime}}</view>
       <view class="time-value" style="font-size: 24rpx; color: #999; margin: 10rpx 0;">至</view>
       <view class="time-value" style="color: #ff9800;">{{config.endTime}}</view>
     </view>
 
-    <button type="primary" class="btn pulse" bindtap="submitFinalRegistration">确认进入抽奖池</button>
+    <picker range="{{poolOptions}}" bindchange="onSelectPool">
+      <view class="picker-box">
+        <text class="picker-label">任务池：</text>
+        <text class="picker-value {{selectedPool ? 'active' : ''}}">{{selectedPool || '请选择：前期 / 后期 / 主持 / 写作'}}</text>
+      </view>
+    </picker>
+
+    <button type="primary" class="btn pulse" bindtap="submitFinalRegistration" disabled="{{!selectedPool}}">确认进入该抽奖池</button>
+  </view>
+
+  <view class="card" wx:elif="{{timeStatus === 2 && isBound && currentRegistrationPool}}">
+    <view class="title">已完成抽奖池选择</view>
+    <view class="desc">当前身份：<text class="highlight">{{selectedName}}</text></view>
+    <view class="pool-tag">当前池子：{{currentRegistrationPool}}</view>
+    <view class="sub-text">你可以取消后重新选择，取消不会影响身份绑定。</view>
+    <button class="btn btn-secondary" bindtap="cancelRegistration">取消当前选择</button>
   </view>
 </view>
 

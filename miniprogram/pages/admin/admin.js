@@ -6,9 +6,8 @@ Page({
     endTime: '',
     users: [],
     drawCount: 1,
-    drawPools: [],
-    selectedDrawPool: '',
-    taskPoolsText: ''
+    drawPools: ['前期', '后期', '主持', '写作'],
+    selectedDrawPool: '前期'
   },
 
   onLoad() {
@@ -20,11 +19,9 @@ Page({
     try {
       const res = await wx.cloud.callFunction({ name: 'adminManager', data: { action: 'getDashboardData' } });
       if (res.result.success) {
-        const cfg = res.result.config || {};
-        const pools = cfg.taskPools || [];
-        const startParts = (cfg.startTime || '').split(' ');
-        const endParts = (cfg.endTime || '').split(' ');
-        const taskPoolsText = pools.map(item => `${item.name},${item.slots || 1}`).join('\n');
+        const startParts = (res.result.config.startTime || '').split(' ');
+        const endParts = (res.result.config.endTime || '').split(' ');
+
         this.setData({
           startDate: startParts[0] || '',
           startTime: startParts[1] || '',
@@ -87,6 +84,7 @@ Page({
 
   async saveTimeConfig() {
     const { startDate, startTime, endDate, endTime } = this.data;
+
     if (!startDate || !startTime || !endDate || !endTime) {
       return wx.showToast({ title: '请完整选择时间', icon: 'none' });
     }
@@ -95,7 +93,11 @@ Page({
     try {
       const res = await wx.cloud.callFunction({
         name: 'adminManager',
-        data: { action: 'saveTimeConfig', startTime: `${startDate} ${startTime}`, endTime: `${endDate} ${endTime}` }
+        data: {
+          action: 'saveTimeConfig',
+          startTime: `${startDate} ${startTime}`,
+          endTime: `${endDate} ${endTime}`
+        }
       });
       if (res.result.success) wx.showToast({ title: '保存成功', icon: 'success' });
       else wx.showModal({ title: '保存失败', content: res.result.msg, showCancel: false });
@@ -109,20 +111,36 @@ Page({
   inputWeight(e) {
     const index = e.currentTarget.dataset.index;
     const value = parseInt(e.detail.value) || 0;
-    this.setData({ [`users[${index}].weight`]: value });
+    this.setData({
+      [`users[${index}].weight`]: value
+    });
   },
 
   async updateWeight(e) {
     const id = e.currentTarget.dataset.id;
     const index = e.currentTarget.dataset.index;
     const currentWeight = this.data.users[index].weight || 0;
-    if (!id) return wx.showModal({ title: '致命错误', content: '找不到该条记录的数据库 ID (_id)', showCancel: false });
+
+    if (!id) {
+      return wx.showModal({ title: '致命错误', content: '找不到该条记录的数据库 ID (_id)', showCancel: false });
+    }
 
     wx.showLoading({ title: '更新中...' });
     try {
-      const res = await wx.cloud.callFunction({ name: 'adminManager', data: { action: 'updateWeight', userId: id, weight: currentWeight } });
-      if (res.result.success) wx.showToast({ title: '权重已更新', icon: 'success' });
-      else wx.showModal({ title: '更新失败', content: res.result.msg || '未知错误', showCancel: false });
+      const res = await wx.cloud.callFunction({
+        name: 'adminManager',
+        data: {
+          action: 'updateWeight',
+          userId: id,
+          weight: currentWeight
+        }
+      });
+
+      if (res.result.success) {
+        wx.showToast({ title: '权重已更新', icon: 'success' });
+      } else {
+        wx.showModal({ title: '更新失败', content: res.result.msg || '未知错误', showCancel: false });
+      }
     } catch (err) {
       wx.showModal({ title: '网络/代码异常', content: err.message || '请查看控制台', showCancel: false });
     } finally {
@@ -138,20 +156,44 @@ Page({
 
   onDrawPoolChange(e) {
     const idx = e.detail.value;
-    this.setData({ selectedDrawPool: this.data.drawPools[idx] || '' });
+    this.setData({ selectedDrawPool: this.data.drawPools[idx] });
   },
 
   executeDraw() {
     const count = this.data.drawCount;
     const poolType = this.data.selectedDrawPool;
-    if (!poolType) return wx.showToast({ title: '请先配置任务池', icon: 'none' });
 
     wx.showModal({
       title: '高能预警',
       content: `确认在【${poolType}】池开奖并抽取 ${count} 名幸运儿吗？操作不可逆！`,
-      success: (res) => {
-        if (!res.confirm) return;
-        this.confirmDraw(count, poolType);
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '疯狂计算中...', mask: true });
+          try {
+            const drawRes = await wx.cloud.callFunction({
+              name: 'adminManager',
+              data: { action: 'executeDraw', drawCount: count, poolType }
+            });
+            if (drawRes.result.success) {
+              wx.showModal({
+                title: `🎯 ${poolType}池开奖成功！`,
+                content: `本次抽中的是：\n${drawRes.result.winnerNames}`,
+                showCancel: false
+              });
+              this.fetchDashboardData();
+            } else {
+              wx.showModal({ title: '开奖失败', content: drawRes.result.msg, showCancel: false });
+            }
+          } catch (err) {
+            wx.showToast({ title: '网络异常', icon: 'none' });
+          } finally {
+            wx.hideLoading();
+          }
+        } catch (err) {
+          wx.showToast({ title: '网络异常', icon: 'none' });
+        } finally {
+          wx.hideLoading();
+        }
       }
     });
   },

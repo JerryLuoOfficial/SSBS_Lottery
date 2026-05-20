@@ -6,7 +6,7 @@ Page({
     codeNames: [],
     selectedName: '',
     isAdmin: false,
-    poolOptions: [],
+    poolOptions: ['前期', '后期', '主持', '写作'],
     selectedPool: '',
     currentRegistrationPool: ''
   },
@@ -23,15 +23,11 @@ Page({
     wx.showLoading({ title: '系统加载中...' });
     try {
       const configRes = await wx.cloud.callFunction({ name: 'userAuth', data: { action: 'getConfig' } });
-      if (configRes.result.success) {
+      if (configRes.result.success && configRes.result.config.startTime) {
         const cfg = configRes.result.config || {};
         const poolOptions = (cfg.taskPools || []).map(item => item.name).filter(Boolean);
         this.setData({ config: cfg, poolOptions });
-        if (cfg.startTime && cfg.endTime) {
-          this.checkTimeStatus();
-        } else {
-          this.setData({ timeStatus: 1 });
-        }
+        this.checkTimeStatus();
       } else {
         this.setData({ timeStatus: 1 });
       }

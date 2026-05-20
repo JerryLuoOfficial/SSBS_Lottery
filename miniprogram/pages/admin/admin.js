@@ -196,5 +196,29 @@ Page({
         }
       }
     });
+  },
+
+  async confirmDraw(count, poolType) {
+    wx.showLoading({ title: '疯狂计算中...', mask: true });
+    try {
+      const drawRes = await wx.cloud.callFunction({
+        name: 'adminManager',
+        data: { action: 'executeDraw', drawCount: count, poolType }
+      });
+      if (drawRes.result.success) {
+        wx.showModal({
+          title: `🎯 ${poolType}池开奖成功！`,
+          content: `本次抽中的是：\n${drawRes.result.winnerNames}`,
+          showCancel: false
+        });
+        this.fetchDashboardData();
+      } else {
+        wx.showModal({ title: '开奖失败', content: drawRes.result.msg, showCancel: false });
+      }
+    } catch (err) {
+      wx.showToast({ title: '网络异常', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
   }
 });

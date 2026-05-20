@@ -27,6 +27,7 @@
     <button class="btn-save" bindtap="saveTimeConfig">保存时间配置</button>
   </view>
 
+
   <view class="card">
     <view class="card-title">抽奖配置</view>
 

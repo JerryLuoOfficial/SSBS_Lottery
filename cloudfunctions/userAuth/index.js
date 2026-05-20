@@ -16,7 +16,11 @@ exports.main = async (event, context) => {
   if (event.action === 'getConfig') {
     try {
       const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
-      return { success: true, config: configRes.data || {} };
+      const config = configRes.data || {};
+      if (!Array.isArray(config.taskPools) || config.taskPools.length === 0) {
+        config.taskPools = DEFAULT_POOLS;
+      }
+      return { success: true, config };
     } catch (err) {
       return { success: false };
     }

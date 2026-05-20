@@ -10,7 +10,7 @@ const VALID_POOLS = ['前期', '后期', '主持', '写作'];
 exports.main = async (event, context) => {
   if (event.action === 'getDashboardData') {
     try {
-      const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
+      const config = await getConfigData();
       const usersRes = await usersCollection.get();
       const regsRes = await db.collection('registrations').get().catch(() => ({ data: [] }));
 
@@ -33,16 +33,13 @@ exports.main = async (event, context) => {
 
   if (event.action === 'saveTimeConfig') {
     try {
-      const checkRes = await settingsCollection.where({ _id: 'global_config' }).count();
-      if (checkRes.total === 0) {
-        await settingsCollection.add({
-          data: { _id: 'global_config', startTime: event.startTime, endTime: event.endTime }
-        });
-      } else {
-        await settingsCollection.doc('global_config').update({
-          data: { startTime: event.startTime, endTime: event.endTime }
-        });
-      }
+      const config = await getConfigData();
+      const payload = {
+        ...config,
+        startTime: event.startTime,
+        endTime: event.endTime
+      };
+      await settingsCollection.doc('global_config').set({ data: payload });
       return { success: true };
     } catch (err) {
       return { success: false, msg: err.message || '数据库写入时间异常' };
@@ -51,9 +48,26 @@ exports.main = async (event, context) => {
 
   if (event.action === 'updateWeight') {
     try {
-      await usersCollection.doc(event.userId).update({
-        data: { weight: event.weight }
+      const pools = normalizeTaskPools(event.taskPools);
+      if (pools.length === 0) {
+        return { success: false, msg: '请至少保留一个任务池' };
+      }
+      const config = await getConfigData();
+      await settingsCollection.doc('global_config').set({
+        data: {
+          ...config,
+          taskPools: pools
+        }
       });
+      return { success: true, taskPools: pools };
+    } catch (err) {
+      return { success: false, msg: err.message || '保存任务池失败' };
+    }
+  }
+
+  if (event.action === 'updateWeight') {
+    try {
+      await usersCollection.doc(event.userId).update({ data: { weight: event.weight } });
       return { success: true };
     } catch (err) {
       return { success: false, msg: '数据库更新权重报错' };
@@ -69,6 +83,8 @@ exports.main = async (event, context) => {
       const regsRes = await db.collection('registrations').where({ poolType: event.poolType }).get();
       const participants = regsRes.data;
 
+      const regsRes = await db.collection('registrations').where({ poolType: event.poolType }).get();
+      const participants = regsRes.data;
       if (participants.length === 0) {
         return { success: false, msg: `${event.poolType} 池当前无人报名，无法开奖` };
       }

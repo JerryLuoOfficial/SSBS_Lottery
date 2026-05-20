@@ -24,9 +24,7 @@ Page({
     try {
       const configRes = await wx.cloud.callFunction({ name: 'userAuth', data: { action: 'getConfig' } });
       if (configRes.result.success && configRes.result.config.startTime) {
-        const cfg = configRes.result.config || {};
-        const poolOptions = (cfg.taskPools || []).map(item => item.name).filter(Boolean);
-        this.setData({ config: cfg, poolOptions });
+        this.setData({ config: configRes.result.config });
         this.checkTimeStatus();
       } else {
         this.setData({ timeStatus: 1 });

@@ -44,15 +44,14 @@
       <view class="time-value" style="color: #ff9800;">{{config.endTime}}</view>
     </view>
 
-    <picker wx:if="{{poolOptions.length > 0}}" range="{{poolOptions}}" bindchange="onSelectPool">
+    <picker range="{{poolOptions}}" bindchange="onSelectPool">
       <view class="picker-box">
         <text class="picker-label">任务池：</text>
         <text class="picker-value {{selectedPool ? 'active' : ''}}">{{selectedPool || '请选择：前期 / 后期 / 主持 / 写作'}}</text>
       </view>
     </picker>
-    <view wx:else class="picker-box">暂无可用任务池，请联系管理员配置</view>
 
-    <button type="primary" class="btn pulse" bindtap="submitFinalRegistration" disabled="{{!selectedPool || poolOptions.length===0}}">确认进入该抽奖池</button>
+    <button type="primary" class="btn pulse" bindtap="submitFinalRegistration" disabled="{{!selectedPool}}">确认进入该抽奖池</button>
   </view>
 
   <view class="card" wx:elif="{{timeStatus === 2 && isBound && currentRegistrationPool}}">

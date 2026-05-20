@@ -6,22 +6,7 @@ const collection = db.collection('users');
 const settingsCollection = db.collection('settings');
 
 const ADMIN_OPENID = "os6Z31_HUyAAzRmXW-5Gxb95CUM8";
-const DEFAULT_POOLS = [
-  { name: '前期', slots: 1 },
-  { name: '后期', slots: 1 },
-  { name: '主持', slots: 1 },
-  { name: '写作', slots: 1 }
-];
-
-async function getTaskPools() {
-  const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
-  const pools = (configRes.data && Array.isArray(configRes.data.taskPools) && configRes.data.taskPools.length > 0)
-    ? configRes.data.taskPools
-    : DEFAULT_POOLS;
-  return pools
-    .map(p => ({ name: String(p.name || '').trim(), slots: Math.max(1, parseInt(p.slots, 10) || 1) }))
-    .filter(p => p.name);
-}
+const VALID_POOLS = ['前期', '后期', '主持', '写作'];
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
@@ -61,11 +46,12 @@ exports.main = async (event, context) => {
         isBound: true,
         codeName: userResult.data[0].codeName,
         isAdmin,
-        currentRegistration
+        currentRegistration,
+        debugOpenId: openId
       };
     }
 
-    return { isBound: false, isAdmin, currentRegistration: null };
+    return { isBound: false, isAdmin, currentRegistration: null, debugOpenId: openId };
   }
 
   if (event.action === 'bind') {
@@ -99,10 +85,8 @@ exports.main = async (event, context) => {
 
   if (event.action === 'registerForDraw') {
     try {
-      const taskPools = await getTaskPools();
-      const validPoolNames = taskPools.map(p => p.name);
-      if (!validPoolNames.includes(event.poolType)) {
-        return { success: false, msg: '当前任务池不存在，请刷新后重试' };
+      if (!VALID_POOLS.includes(event.poolType)) {
+        return { success: false, msg: '抽奖池类型非法' };
       }
 
       const checkReg = await db.collection('registrations').where({ openid: openId }).count();

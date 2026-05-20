@@ -7,7 +7,8 @@ Page({
     users: [],
     drawCount: 1,
     drawPools: ['前期', '后期', '主持', '写作'],
-    selectedDrawPool: '前期'
+    selectedDrawPool: '前期',
+    newPoolName: ''
   },
 
   onLoad() {
@@ -31,7 +32,9 @@ Page({
           startTime: startParts[1] || '',
           endDate: endParts[0] || '',
           endTime: endParts[1] || '',
-          users: res.result.users
+          users: res.result.users,
+          drawPools: (res.result.config.poolOptions && res.result.config.poolOptions.length > 0) ? res.result.config.poolOptions : ['前期', '后期', '主持', '写作'],
+          selectedDrawPool: (res.result.config.poolOptions && res.result.config.poolOptions.length > 0) ? res.result.config.poolOptions[0] : '前期'
         });
       }
     } catch (err) {
@@ -124,6 +127,63 @@ Page({
   onDrawPoolChange(e) {
     const idx = e.detail.value;
     this.setData({ selectedDrawPool: this.data.drawPools[idx] });
+  },
+
+  onNewPoolNameInput(e) {
+    this.setData({ newPoolName: e.detail.value || '' });
+  },
+
+  addPool() {
+    const name = (this.data.newPoolName || '').trim();
+    if (!name) {
+      return wx.showToast({ title: '请输入池子名称', icon: 'none' });
+    }
+    if (this.data.drawPools.includes(name)) {
+      return wx.showToast({ title: '该池子已存在', icon: 'none' });
+    }
+    this.setData({
+      drawPools: [...this.data.drawPools, name],
+      newPoolName: ''
+    });
+  },
+
+  removePool(e) {
+    const poolName = e.currentTarget.dataset.pool;
+    const nextPools = this.data.drawPools.filter(item => item !== poolName);
+    if (nextPools.length === 0) {
+      return wx.showToast({ title: '至少保留一个池子', icon: 'none' });
+    }
+    this.setData({
+      drawPools: nextPools,
+      selectedDrawPool: nextPools.includes(this.data.selectedDrawPool) ? this.data.selectedDrawPool : nextPools[0]
+    });
+  },
+
+  async savePoolConfig() {
+    wx.showLoading({ title: '保存池子中...', mask: true });
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'adminManager',
+        data: {
+          action: 'savePoolConfig',
+          poolOptions: this.data.drawPools
+        }
+      });
+      if (res.result.success) {
+        const savedPools = res.result.poolOptions || this.data.drawPools;
+        this.setData({
+          drawPools: savedPools,
+          selectedDrawPool: savedPools.includes(this.data.selectedDrawPool) ? this.data.selectedDrawPool : savedPools[0]
+        });
+        wx.showToast({ title: '池子配置已保存', icon: 'success' });
+      } else {
+        wx.showModal({ title: '保存失败', content: res.result.msg || '未知错误', showCancel: false });
+      }
+    } catch (err) {
+      wx.showToast({ title: '网络异常', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
   },
 
   executeDraw() {

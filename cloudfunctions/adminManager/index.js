@@ -1,31 +1,11 @@
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 const usersCollection = db.collection('users');
 const settingsCollection = db.collection('settings');
 
-const DEFAULT_POOLS = [
-  { name: '前期', slots: 1 },
-  { name: '后期', slots: 1 },
-  { name: '主持', slots: 1 },
-  { name: '写作', slots: 1 }
-];
-
-function normalizeTaskPools(taskPools) {
-  const list = Array.isArray(taskPools) ? taskPools : [];
-  return list
-    .map(item => ({ name: String(item.name || '').trim(), slots: Math.max(1, parseInt(item.slots, 10) || 1) }))
-    .filter(item => item.name)
-    .filter((item, idx, arr) => arr.findIndex(x => x.name === item.name) === idx);
-}
-
-async function getConfigData() {
-  const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
-  const config = configRes.data || {};
-  const pools = normalizeTaskPools(config.taskPools);
-  config.taskPools = pools.length > 0 ? pools : DEFAULT_POOLS;
-  return config;
-}
+const VALID_POOLS = ['前期', '后期', '主持', '写作'];
 
 exports.main = async (event, context) => {
   if (event.action === 'getDashboardData') {
@@ -45,7 +25,7 @@ exports.main = async (event, context) => {
         registrationPool: regMap.get(user.codeName) || ''
       }));
 
-      return { success: true, config, users: usersWithRegStatus };
+      return { success: true, config: configRes.data || {}, users: usersWithRegStatus };
     } catch (err) {
       return { success: false, msg: '获取数据失败: ' + err.message };
     }
@@ -66,7 +46,7 @@ exports.main = async (event, context) => {
     }
   }
 
-  if (event.action === 'saveTaskPools') {
+  if (event.action === 'updateWeight') {
     try {
       const pools = normalizeTaskPools(event.taskPools);
       if (pools.length === 0) {
@@ -96,11 +76,12 @@ exports.main = async (event, context) => {
 
   if (event.action === 'executeDraw') {
     try {
-      const config = await getConfigData();
-      const poolConfig = config.taskPools.find(item => item.name === event.poolType);
-      if (!poolConfig) {
-        return { success: false, msg: '请选择有效的任务池' };
+      if (!VALID_POOLS.includes(event.poolType)) {
+        return { success: false, msg: '请选择有效的抽奖池' };
       }
+
+      const regsRes = await db.collection('registrations').where({ poolType: event.poolType }).get();
+      const participants = regsRes.data;
 
       const regsRes = await db.collection('registrations').where({ poolType: event.poolType }).get();
       const participants = regsRes.data;
@@ -108,9 +89,8 @@ exports.main = async (event, context) => {
         return { success: false, msg: `${event.poolType} 池当前无人报名，无法开奖` };
       }
 
-      let drawCount = event.drawCount || poolConfig.slots || 1;
-      drawCount = Math.max(1, drawCount);
-      drawCount = Math.min(drawCount, poolConfig.slots, participants.length);
+      let drawCount = event.drawCount || 1;
+      drawCount = Math.min(drawCount, participants.length);
 
       const candidates = [];
       for (const p of participants) {
@@ -119,10 +99,13 @@ exports.main = async (event, context) => {
         candidates.push({ openid: p.openid, codeName: p.codeName, weight });
       }
 
-      const winners = [];
+      let winners = [];
       let currentPool = [...candidates];
+
       for (let i = 0; i < drawCount; i++) {
         const totalWeight = currentPool.reduce((sum, c) => sum + c.weight, 0);
+
+        // 全部为 0 时，直接按顺序补位，防止抽奖死循环
         let currentWinner = null;
         if (totalWeight <= 0) {
           currentWinner = currentPool[0];
@@ -136,29 +119,44 @@ exports.main = async (event, context) => {
             }
           }
         }
+
         if (!currentWinner) currentWinner = currentPool[0];
+
         winners.push(currentWinner);
         currentPool = currentPool.filter(c => c.openid !== currentWinner.openid);
       }
 
+      // 权重统一：中签者归零；同池未中签者权重 × 1.2
       const winnerOpenids = winners.map(w => w.openid);
-      await Promise.all(candidates.map(candidate => {
-        const newWeight = winnerOpenids.includes(candidate.openid) ? 0 : Math.round(candidate.weight * 1.2);
+      const updatePromises = candidates.map(candidate => {
+        const isWinner = winnerOpenids.includes(candidate.openid);
+        const newWeight = isWinner ? 0 : Math.round(candidate.weight * 1.2);
         return usersCollection.where({ openid: candidate.openid }).update({ data: { weight: newWeight } });
-      }));
+      });
+      await Promise.all(updatePromises);
 
       const winnerNamesStr = winners.map(w => w.codeName).join('，');
-      await settingsCollection.doc('global_config').set({
+      await settingsCollection.doc('global_config').update({
         data: {
-          ...config,
           lastWinnerCodeName: winnerNamesStr,
           lastWinnerPoolType: event.poolType,
           drawTime: db.serverDate()
         }
+      }).catch(async () => {
+        await settingsCollection.add({
+          data: {
+            _id: 'global_config',
+            lastWinnerCodeName: winnerNamesStr,
+            lastWinnerPoolType: event.poolType,
+            drawTime: db.serverDate()
+          }
+        });
       });
 
+      // 仅清空当前池子报名记录
       await db.collection('registrations').where({ poolType: event.poolType }).remove();
-      return { success: true, winnerNames: winnerNamesStr, poolType: event.poolType, drawCount };
+
+      return { success: true, winnerNames: winnerNamesStr, poolType: event.poolType };
     } catch (err) {
       console.error('抽奖崩溃详情:', err);
       return { success: false, msg: '异常详情: ' + err.message };

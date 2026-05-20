@@ -17,7 +17,11 @@ Page({
   async fetchDashboardData() {
     wx.showLoading({ title: '加载中...' });
     try {
-      const res = await wx.cloud.callFunction({ name: 'adminManager', data: { action: 'getDashboardData' } });
+      const res = await wx.cloud.callFunction({
+        name: 'adminManager',
+        data: { action: 'getDashboardData' }
+      });
+
       if (res.result.success) {
         const startParts = (res.result.config.startTime || '').split(' ');
         const endParts = (res.result.config.endTime || '').split(' ');
@@ -27,10 +31,7 @@ Page({
           startTime: startParts[1] || '',
           endDate: endParts[0] || '',
           endTime: endParts[1] || '',
-          users: res.result.users,
-          drawPools: pools.map(item => item.name),
-          selectedDrawPool: pools[0] ? pools[0].name : '',
-          taskPoolsText
+          users: res.result.users
         });
       }
     } catch (err) {
@@ -44,43 +45,6 @@ Page({
   onStartTimeChange(e) { this.setData({ startTime: e.detail.value }); },
   onEndDateChange(e) { this.setData({ endDate: e.detail.value }); },
   onEndTimeChange(e) { this.setData({ endTime: e.detail.value }); },
-  onTaskPoolsTextChange(e) { this.setData({ taskPoolsText: e.detail.value }); },
-
-  parseTaskPools(text) {
-    return text
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean)
-      .map(line => {
-        const parts = line.split(',');
-        const name = (parts[0] || '').trim();
-        const slots = Math.max(1, parseInt((parts[1] || '1').trim(), 10) || 1);
-        return { name, slots };
-      })
-      .filter(item => item.name);
-  },
-
-  async saveTaskPools() {
-    const taskPools = this.parseTaskPools(this.data.taskPoolsText);
-    if (taskPools.length === 0) {
-      return wx.showToast({ title: '请至少配置一个任务池', icon: 'none' });
-    }
-
-    wx.showLoading({ title: '保存任务池中...', mask: true });
-    try {
-      const res = await wx.cloud.callFunction({ name: 'adminManager', data: { action: 'saveTaskPools', taskPools } });
-      if (res.result.success) {
-        wx.showToast({ title: '任务池保存成功', icon: 'success' });
-        this.fetchDashboardData();
-      } else {
-        wx.showModal({ title: '保存失败', content: res.result.msg || '未知错误', showCancel: false });
-      }
-    } catch (err) {
-      wx.showToast({ title: '网络异常', icon: 'none' });
-    } finally {
-      wx.hideLoading();
-    }
-  },
 
   async saveTimeConfig() {
     const { startDate, startTime, endDate, endTime } = this.data;
@@ -99,8 +63,11 @@ Page({
           endTime: `${endDate} ${endTime}`
         }
       });
-      if (res.result.success) wx.showToast({ title: '保存成功', icon: 'success' });
-      else wx.showModal({ title: '保存失败', content: res.result.msg, showCancel: false });
+      if (res.result.success) {
+        wx.showToast({ title: '保存成功', icon: 'success' });
+      } else {
+        wx.showModal({ title: '保存失败', content: res.result.msg, showCancel: false });
+      }
     } catch (err) {
       wx.showToast({ title: '网络异常', icon: 'none' });
     } finally {
@@ -189,10 +156,6 @@ Page({
           } finally {
             wx.hideLoading();
           }
-        } catch (err) {
-          wx.showToast({ title: '网络异常', icon: 'none' });
-        } finally {
-          wx.hideLoading();
         }
       }
     });

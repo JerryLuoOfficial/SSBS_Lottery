@@ -6,7 +6,16 @@ const collection = db.collection('users');
 const settingsCollection = db.collection('settings');
 
 const ADMIN_OPENID = "os6Z31_HUyAAzRmXW-5Gxb95CUM8";
-const VALID_POOLS = ['前期', '后期', '主持', '写作'];
+const DEFAULT_POOLS = ['前期', '后期', '主持', '写作'];
+
+async function getValidPools() {
+  const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
+  const pools = (configRes.data && Array.isArray(configRes.data.poolOptions)) ? configRes.data.poolOptions : [];
+  const cleanedPools = pools
+    .map(item => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean);
+  return cleanedPools.length > 0 ? cleanedPools : DEFAULT_POOLS;
+}
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
@@ -16,7 +25,11 @@ exports.main = async (event, context) => {
   if (event.action === 'getConfig') {
     try {
       const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
-      return { success: true, config: configRes.data || {} };
+      const config = configRes.data || {};
+      if (!Array.isArray(config.poolOptions) || config.poolOptions.length === 0) {
+        config.poolOptions = DEFAULT_POOLS;
+      }
+      return { success: true, config };
     } catch (err) {
       return { success: false };
     }
@@ -81,7 +94,8 @@ exports.main = async (event, context) => {
 
   if (event.action === 'registerForDraw') {
     try {
-      if (!VALID_POOLS.includes(event.poolType)) {
+      const validPools = await getValidPools();
+      if (!validPools.includes(event.poolType)) {
         return { success: false, msg: '抽奖池类型非法' };
       }
 

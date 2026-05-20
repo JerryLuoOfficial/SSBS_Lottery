@@ -6,7 +6,7 @@ Page({
     codeNames: [],
     selectedName: '',
     isAdmin: false,
-    poolOptions: ['前期', '后期', '主持', '写作'],
+    poolOptions: [],
     selectedPool: '',
     currentRegistrationPool: ''
   },
@@ -29,6 +29,11 @@ Page({
       } else {
         this.setData({ timeStatus: 1 });
       }
+
+      const poolOptions = (configRes.result.config && Array.isArray(configRes.result.config.poolOptions) && configRes.result.config.poolOptions.length > 0)
+        ? configRes.result.config.poolOptions
+        : ['前期', '后期', '主持', '写作'];
+      this.setData({ poolOptions });
 
       const authRes = await wx.cloud.callFunction({ name: 'userAuth', data: { action: 'check' } });
       const currentRegistration = authRes.result.currentRegistration || null;

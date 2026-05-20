@@ -30,6 +30,23 @@
   <view class="card">
     <view class="card-title">抽奖配置</view>
 
+    <view class="draw-setting" style="display:block;">
+      <text class="draw-label" style="display:block; margin-bottom: 12rpx;">池子管理：</text>
+      <view style="display:flex; gap: 12rpx; align-items:center; margin-bottom: 16rpx;">
+        <input class="draw-count-input" placeholder="输入新池子名称" value="{{newPoolName}}" bindinput="onNewPoolNameInput" />
+        <button size="mini" bindtap="addPool">添加</button>
+      </view>
+      <view>
+        <block wx:for="{{drawPools}}" wx:key="*this">
+          <view style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8rpx;">
+            <text>{{item}}</text>
+            <button size="mini" type="warn" data-pool="{{item}}" bindtap="removePool">删除</button>
+          </view>
+        </block>
+      </view>
+      <button class="btn-save" bindtap="savePoolConfig" style="margin-top: 12rpx;">保存池子配置</button>
+    </view>
+
     <view class="draw-setting">
       <text class="draw-label">抽奖池：</text>
       <picker range="{{drawPools}}" bindchange="onDrawPoolChange">

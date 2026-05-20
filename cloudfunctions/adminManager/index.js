@@ -5,7 +5,16 @@ const _ = db.command;
 const usersCollection = db.collection('users');
 const settingsCollection = db.collection('settings');
 
-const VALID_POOLS = ['前期', '后期', '主持', '写作'];
+const DEFAULT_POOLS = ['前期', '后期', '主持', '写作'];
+
+async function getValidPools() {
+  const configRes = await settingsCollection.doc('global_config').get().catch(() => ({ data: {} }));
+  const pools = (configRes.data && Array.isArray(configRes.data.poolOptions)) ? configRes.data.poolOptions : [];
+  const cleanedPools = pools
+    .map(item => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean);
+  return cleanedPools.length > 0 ? cleanedPools : DEFAULT_POOLS;
+}
 
 exports.main = async (event, context) => {
   if (event.action === 'getDashboardData') {
@@ -25,7 +34,11 @@ exports.main = async (event, context) => {
         registrationPool: regMap.get(user.codeName) || ''
       }));
 
-      return { success: true, config: configRes.data || {}, users: usersWithRegStatus };
+      const config = configRes.data || {};
+      if (!Array.isArray(config.poolOptions) || config.poolOptions.length === 0) {
+        config.poolOptions = DEFAULT_POOLS;
+      }
+      return { success: true, config, users: usersWithRegStatus };
     } catch (err) {
       return { success: false, msg: '获取数据失败: ' + err.message };
     }
@@ -49,6 +62,33 @@ exports.main = async (event, context) => {
     }
   }
 
+  if (event.action === 'savePoolConfig') {
+    try {
+      const incomingPools = Array.isArray(event.poolOptions) ? event.poolOptions : [];
+      const cleanedPools = [...new Set(incomingPools
+        .map(item => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean))];
+
+      if (cleanedPools.length === 0) {
+        return { success: false, msg: '请至少保留一个抽奖池' };
+      }
+
+      const checkRes = await settingsCollection.where({ _id: 'global_config' }).count();
+      if (checkRes.total === 0) {
+        await settingsCollection.add({
+          data: { _id: 'global_config', poolOptions: cleanedPools }
+        });
+      } else {
+        await settingsCollection.doc('global_config').update({
+          data: { poolOptions: cleanedPools }
+        });
+      }
+      return { success: true, poolOptions: cleanedPools };
+    } catch (err) {
+      return { success: false, msg: err.message || '保存池子配置失败' };
+    }
+  }
+
   if (event.action === 'updateWeight') {
     try {
       await usersCollection.doc(event.userId).update({
@@ -62,7 +102,8 @@ exports.main = async (event, context) => {
 
   if (event.action === 'executeDraw') {
     try {
-      if (!VALID_POOLS.includes(event.poolType)) {
+      const validPools = await getValidPools();
+      if (!validPools.includes(event.poolType)) {
         return { success: false, msg: '请选择有效的抽奖池' };
       }
 
@@ -110,11 +151,11 @@ exports.main = async (event, context) => {
         currentPool = currentPool.filter(c => c.openid !== currentWinner.openid);
       }
 
-      // 权重统一：中签者归零；同池未中签者权重 × 1.2
+      // 权重统一：中签者重置为 100；同池未中签者权重 × 1.2
       const winnerOpenids = winners.map(w => w.openid);
       const updatePromises = candidates.map(candidate => {
         const isWinner = winnerOpenids.includes(candidate.openid);
-        const newWeight = isWinner ? 0 : Math.round(candidate.weight * 1.2);
+        const newWeight = isWinner ? 100 : Math.round(candidate.weight * 1.2);
         return usersCollection.where({ openid: candidate.openid }).update({ data: { weight: newWeight } });
       });
       await Promise.all(updatePromises);

@@ -47,7 +47,7 @@
     <picker range="{{poolOptions}}" bindchange="onSelectPool">
       <view class="picker-box">
         <text class="picker-label">任务池：</text>
-        <text class="picker-value {{selectedPool ? 'active' : ''}}">{{selectedPool || '请选择：前期 / 后期 / 主持 / 写作'}}</text>
+        <text class="picker-value {{selectedPool ? 'active' : ''}}">{{selectedPool || '请选择抽奖池'}}</text>
       </view>
     </picker>
 

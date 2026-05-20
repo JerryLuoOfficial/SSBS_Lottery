@@ -130,6 +130,3 @@ page { background: linear-gradient(180deg, #f4f7f9 0%, #edf3ff 100%); color: #33
   border-radius: 25rpx;
   margin: 0;
 }
-
-.pool-help { color:#666; font-size:24rpx; margin-bottom:16rpx; }
-.pool-textarea { width:100%; min-height:220rpx; border:2rpx solid #ddd; border-radius:12rpx; background:#fafafa; padding:20rpx; box-sizing:border-box; font-size:28rpx; margin-bottom:20rpx; }

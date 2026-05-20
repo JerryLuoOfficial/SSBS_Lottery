@@ -6,7 +6,7 @@ Page({
     codeNames: [],
     selectedName: '',
     isAdmin: false,
-    poolOptions: [],
+    poolOptions: ['前期', '后期', '主持', '写作'],
     selectedPool: '',
     currentRegistrationPool: ''
   },

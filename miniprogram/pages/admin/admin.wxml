@@ -29,13 +29,6 @@
 
 
   <view class="card">
-    <view class="card-title">任务池动态配置</view>
-    <view class="pool-help">每行一个任务池，格式：任务名,人数（例如：前期,2）</view>
-    <textarea class="pool-textarea" value="{{taskPoolsText}}" bindinput="onTaskPoolsTextChange" placeholder="前期,2&#10;后期,3" />
-    <button class="btn-save" bindtap="saveTaskPools">保存任务池配置</button>
-  </view>
-
-  <view class="card">
     <view class="card-title">抽奖配置</view>
 
     <view class="draw-setting">
